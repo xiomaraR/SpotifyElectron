@@ -85,7 +85,9 @@ def get_user(name: str, token: Annotated[TokenData, Depends(JWTBearer())]) -> Re
         user = base_user_service.get_user(name)
         user_json = json_converter_utils.get_json_from_model(user)
 
-        return Response(user_json, media_type="application/json", status_code=HTTP_200_OK)
+        return Response(
+            user_json, media_type="application/json", status_code=HTTP_200_OK
+        )
 
     except UserBadNameException:
         return Response(
@@ -157,6 +159,46 @@ def delete_user(name: str) -> Response:
         return Response(
             status_code=HTTP_404_NOT_FOUND,
             content=PropertiesMessagesManager.userNotFound,
+        )
+    except (Exception, UserServiceException):
+        return Response(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content=PropertiesMessagesManager.commonInternalServerError,
+        )
+
+
+@router.patch("/{name}/upgrade_to_artist")
+def upgrade_to_artist(
+    name: str, token: Annotated[TokenData, Depends(JWTBearer())]
+) -> Response:
+    """Upgrade user to artist
+
+    Args:
+        name (str): user name
+    """
+    try:
+        user_service.upgrade_user_to_artist(name, token)
+        return Response(None, HTTP_204_NO_CONTENT)
+    except UserBadNameException:
+        return Response(
+            status_code=HTTP_400_BAD_REQUEST,
+            content=PropertiesMessagesManager.userBadName,
+        )
+    except UserNotFoundException:
+        return Response(
+            status_code=HTTP_404_NOT_FOUND,
+            content=PropertiesMessagesManager.userNotFound,
+        )
+    except UserUnauthorizedException:
+        return Response(
+            status_code=HTTP_403_FORBIDDEN,
+            content=PropertiesMessagesManager.userUnauthorized,
+        )
+    except BadJWTTokenProvidedException:
+        return Response(
+            status_code=HTTP_403_FORBIDDEN,
+            content=PropertiesMessagesManager.tokenInvalidCredentials,
+            headers={"WWW-Authenticate": "Bearer"},
         )
     except (Exception, UserServiceException):
         return Response(
@@ -325,7 +367,9 @@ def get_user_relevant_playlists(name: str) -> Response:
     try:
         playlists = base_user_service.get_user_relevant_playlists(name)
         playlists_json = json_converter_utils.get_json_from_model(playlists)
-        return Response(playlists_json, media_type="application/json", status_code=HTTP_200_OK)
+        return Response(
+            playlists_json, media_type="application/json", status_code=HTTP_200_OK
+        )
     except UserBadNameException:
         return Response(
             status_code=HTTP_400_BAD_REQUEST,

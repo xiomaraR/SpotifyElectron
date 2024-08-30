@@ -6,6 +6,7 @@ from starlette.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
     HTTP_202_ACCEPTED,
+    HTTP_204_NO_CONTENT,
     HTTP_404_NOT_FOUND,
     HTTP_405_METHOD_NOT_ALLOWED,
 )
@@ -14,7 +15,12 @@ import app.auth.auth_service as auth_service
 import app.spotify_electron.user.base_user_service as base_user_service
 import app.spotify_electron.user.user.user_service as user_service
 from app.auth.auth_schema import VerifyPasswordException
-from tests.test_API.api_test_user import create_user, delete_user, get_user
+from tests.test_API.api_test_user import (
+    create_user,
+    delete_user,
+    get_user,
+    upgrade_to_artist,
+)
 from tests.test_API.api_token import get_user_jwt_header
 
 
@@ -99,6 +105,28 @@ def test_delete_user_invalid_name(clear_test_data_db):
 
     res_delete_user = delete_user(name=name)
     assert res_delete_user.status_code == HTTP_405_METHOD_NOT_ALLOWED
+
+
+def test_upgrade_user_to_artist(clear_test_data_db):
+    name = "8232392323623823723"
+    photo = "https://photo"
+    password = "hola"
+
+    res_create_user = create_user(name=name, password=password, photo=photo)
+    assert res_create_user.status_code == HTTP_201_CREATED
+
+    jwt_headers = get_user_jwt_header(username=name, password=password)
+
+    res_get_user = get_user(name=name, headers=jwt_headers)
+    assert res_get_user.status_code == HTTP_200_OK
+    assert res_get_user.json()["name"] == name
+    assert res_get_user.json()["photo"] == photo
+
+    res_upgrade_user = upgrade_to_artist(name=name, headers=jwt_headers)
+    assert res_upgrade_user.status_code == HTTP_204_NO_CONTENT
+
+    res_delete_user = delete_user(name=name)
+    assert res_delete_user.status_code == HTTP_202_ACCEPTED
 
 
 def test_check_encrypted_password_correct():

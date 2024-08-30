@@ -3,6 +3,7 @@ User service for handling business logic
 """
 
 import app.auth.auth_service as auth_service
+import app.spotify_electron.user.artist.artist_service as artist_service
 import app.spotify_electron.user.base_user_repository as base_user_repository
 import app.spotify_electron.user.providers.user_collection_provider as user_collection_provider
 import app.spotify_electron.user.user.user_repository as user_repository
@@ -187,3 +188,39 @@ def search_by_name(name: str) -> list[UserDTO]:
             f"Unexpected error in User Service getting items by name {name}"
         )
         raise UserServiceException from exception
+
+
+# TODO make it a transaction
+def upgrade_user_to_artist(user_name: str) -> None:
+    """Upgrade user account to artist account
+
+    Args:
+        user_name (str): user name
+
+    Raises:
+        UserNotFoundException: if the user does not exist
+        UserServiceException: unexpected error while upgrading user to artist
+    """
+    try:
+        base_user_service.validate_user_name_parameter(user_name)
+        user = user_repository.get_user(user_name)
+        artist_service.create_artist(user.name, user.photo, user.password)
+        base_user_service.delete_user(user_name)
+    except UserBadNameException as exception:
+        user_service_logger.exception(f"Bad User Name Parameter: {user_name}")
+        raise UserBadNameException from exception
+    except UserNotFoundException as exception:
+        user_service_logger.exception(f"User not found: {user}")
+        raise UserNotFoundException from exception
+    except UserRepositoryException as exception:
+        user_service_logger.exception(
+            f"Unexpected error in User Repository upgrading user to artist: {user_name}"
+        )
+        raise UserServiceException from exception
+    except Exception as exception:
+        user_service_logger.exception(
+            f"Unexpected error in User Service upgrading user to artist: {user_name}"
+        )
+        raise UserServiceException from exception
+    else:
+        user_service_logger.info(f"Account {user_name} upgraded to artist successfully")

@@ -43,3 +43,7 @@ def delete_user(name: str) -> Response:
 
 def patch_history_playback(user_name: str, song_name: str) -> Response:
     return client.patch(f"/users/{user_name}/playback_history/?song_name={song_name}")
+
+
+def upgrade_to_artist(name: str, headers=dict[str, str]) -> Response:
+    return client.patch(f"/users/{name}/upgrade_to_artist", headers=headers)
